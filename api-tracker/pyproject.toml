@@ -1,0 +1,19 @@
+[project]
+name = "api-tracker"
+version = "0.1.0"
+description = "Monitoraggio centralizzato API keys - Flask dashboard"
+requires-python = ">=3.11"
+dependencies = [
+    "flask>=3.1,<4",
+    "python-dotenv>=1.1,<2",
+    "httpx>=0.28,<1",
+]
+
+[project.scripts]
+api-tracker = "app:app.run"
+
+[project.optional-dependencies]
+dev = [
+    "black>=23.3.0,<24",
+    "isort>=5.10.0,<6",
+]

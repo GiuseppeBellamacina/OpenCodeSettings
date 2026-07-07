@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>API Usage Tracker</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --card: #161b22;
+        --border: #30363d;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --green: #3fb950;
+        --red: #f85149;
+        --yellow: #d29922;
+        --blue: #58a6ff;
+        --purple: #bc8cff;
+        --orange: #f0883e;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        padding: 1.5rem;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 0.3rem;
+        font-size: 1.6rem;
+      }
+      .subtitle {
+        text-align: center;
+        color: var(--muted);
+        margin-bottom: 1.5rem;
+        font-size: 0.85rem;
+      }
+
+      /* ── Hero card (Copilot) ── */
+      .hero {
+        max-width: 720px;
+        margin: 0 auto 1.5rem;
+        background: linear-gradient(135deg, #161b22 0%, #1c2333 100%);
+        border: 1px solid var(--purple);
+        border-radius: 16px;
+        padding: 1.5rem 2rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at 80% 20%,
+          rgba(188, 140, 255, 0.08) 0%,
+          transparent 60%
+        );
+        pointer-events: none;
+      }
+      .hero .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+      .hero .card-header h2 {
+        font-size: 1.35rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .hero .copilot-icon {
+        width: 24px;
+        height: 24px;
+      }
+      .hero .pct-display {
+        font-size: 2.4rem;
+        font-weight: 700;
+        letter-spacing: -1px;
+        margin-bottom: 0.25rem;
+      }
+      .hero .pct-sub {
+        color: var(--muted);
+        font-size: 0.8rem;
+        margin-bottom: 0.75rem;
+      }
+
+      /* Multi-segment bar */
+      .copilot-bar {
+        display: flex;
+        height: 14px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--border);
+        margin-bottom: 0.75rem;
+        gap: 1px;
+      }
+      .copilot-bar .seg {
+        height: 100%;
+        transition: width 0.6s ease;
+        min-width: 0;
+      }
+      .copilot-bar .seg:first-child {
+        border-radius: 8px 0 0 8px;
+      }
+      .copilot-bar .seg:last-child {
+        border-radius: 0 8px 8px 0;
+      }
+      .copilot-bar .seg-base {
+        background: var(--green);
+      }
+      .copilot-bar .seg-extra {
+        background: var(--yellow);
+      }
+      .copilot-bar .seg-danger {
+        background: var(--red);
+      }
+      .copilot-bar .seg-empty {
+        background: transparent;
+      }
+
+      .hero .legend {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.7rem;
+        color: var(--muted);
+        margin-bottom: 0.75rem;
+        flex-wrap: wrap;
+      }
+      .hero .legend span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .hero .legend .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+
+      .hero .stats {
+        display: flex;
+        justify-content: space-between;
+      }
+      .hero .stats > span {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .hero .stats .value {
+        color: var(--text);
+        font-weight: 700;
+        font-size: 1.15rem;
+      }
+
+      /* ── Mini grid ── */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 0.75rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        transition: border-color 0.2s;
+      }
+      .card:hover {
+        border-color: var(--blue);
+      }
+      .card .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.4rem;
+      }
+      .card .card-header h2 {
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+      .badge {
+        padding: 1px 8px;
+        border-radius: 999px;
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      .badge-ok {
+        background: #238636;
+        color: #fff;
+      }
+      .badge-error {
+        background: #da3633;
+        color: #fff;
+      }
+      .badge-noapi {
+        background: #30363d;
+        color: var(--muted);
+      }
+
+      .usage-bar-container {
+        background: var(--border);
+        border-radius: 4px;
+        height: 5px;
+        margin: 0.4rem 0;
+        overflow: hidden;
+      }
+      .usage-bar {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+      }
+      .stats {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+      .stats span {
+        display: flex;
+        flex-direction: column;
+      }
+      .stats .value {
+        color: var(--text);
+        font-weight: 600;
+        font-size: 0.85rem;
+      }
+      .note {
+        color: var(--muted);
+        font-size: 0.7rem;
+        margin-top: 0.3rem;
+      }
+      .details {
+        font-size: 0.7rem;
+        color: var(--muted);
+        margin-top: 0.3rem;
+      }
+      .dashboard-link {
+        display: inline-block;
+        margin-top: 0.5rem;
+        padding: 0.2rem 0.6rem;
+        background: var(--border);
+        color: var(--blue);
+        border: 1px solid var(--blue);
+        border-radius: 5px;
+        font-size: 0.7rem;
+        text-decoration: none;
+        font-weight: 500;
+        transition:
+          background 0.2s,
+          color 0.2s;
+      }
+      .dashboard-link:hover {
+        background: var(--blue);
+        color: #fff;
+      }
+
+      .refresh-btn {
+        display: block;
+        margin: 0 auto 1.5rem;
+        padding: 0.5rem 1.3rem;
+        background: var(--blue);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .refresh-btn:hover {
+        opacity: 0.85;
+      }
+      .refresh-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid transparent;
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+        margin-right: 0.4rem;
+        vertical-align: middle;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .last-check {
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.75rem;
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔑 API Usage Tracker</h1>
+    <p class="subtitle">Monitoraggio centralizzato di tutte le tue API keys</p>
+
+    <button class="refresh-btn" id="refreshBtn" onclick="refresh()">
+      Aggiorna Stato
+    </button>
+    <p class="last-check" id="lastCheck"></p>
+
+    <div id="heroContainer"></div>
+    <div class="grid" id="grid">
+      <div
+        class="card"
+        style="grid-column: 1/-1; text-align: center; color: var(--muted)"
+      >
+        Clicca "Aggiorna Stato" per verificare tutte le API...
+      </div>
+    </div>
+
+    <script>
+      async function refresh() {
+        const btn = document.getElementById("refreshBtn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Checking...';
+        try {
+          const res = await fetch("/api/check");
+          const data = await res.json();
+          renderCards(data);
+          document.getElementById("lastCheck").textContent =
+            "Ultimo aggiornamento: " + new Date().toLocaleString("it-IT");
+        } catch {
+          document.getElementById("heroContainer").innerHTML = "";
+          document.getElementById("grid").innerHTML =
+            '<div class="card" style="grid-column:1/-1;text-align:center;color:var(--red)">Errore di connessione</div>';
+        }
+        btn.disabled = false;
+        btn.textContent = "Aggiorna Stato";
+      }
+
+      function renderCards(providers) {
+        const hero = document.getElementById("heroContainer");
+        const grid = document.getElementById("grid");
+        hero.innerHTML = "";
+        grid.innerHTML = "";
+
+        providers.forEach((p) => {
+          if (p.details && p.details.copilot_scale) {
+            hero.innerHTML = buildCopilotHero(p);
+            return;
+          }
+
+          const card = document.createElement("div");
+          card.className = "card";
+
+          const badgeClass =
+            p.status === "ok"
+              ? "badge-ok"
+              : p.status === "error"
+                ? "badge-error"
+                : "badge-noapi";
+          const badgeText =
+            p.status === "ok"
+              ? "Active"
+              : p.status === "error"
+                ? "Error"
+                : "N/A";
+
+          let content = `<div class="card-header"><h2>${escapeHtml(p.provider)}</h2><span class="badge ${badgeClass}">${badgeText}</span></div>`;
+
+          if (p.usage !== null && p.limit !== null && p.limit > 0) {
+            const pct = Math.min((p.usage / p.limit) * 100, 100);
+            const barColor =
+              pct > 90
+                ? "var(--red)"
+                : pct > 70
+                  ? "var(--yellow)"
+                  : "var(--green)";
+            content += `
+              <div class="usage-bar-container"><div class="usage-bar" style="width:${pct.toFixed(1)}%;background:${barColor}"></div></div>
+              <div class="stats">
+                <span>Usato<span class="value">${formatNum(p.usage)}</span></span>
+                <span>Limite<span class="value">${formatNum(p.limit)}</span></span>
+                <span>Rim.<span class="value">${p.remaining !== null ? formatNum(p.remaining) : "—"}</span></span>
+              </div>`;
+          } else if (p.usage !== null) {
+            content += `<div class="stats"><span>Usato<span class="value">${formatNum(p.usage)}</span></span></div>`;
+          }
+
+          if (p.error)
+            content += `<div class="note" style="color:var(--red)">⚠ ${escapeHtml(p.error)}</div>`;
+
+          if (p.details) {
+            const notes = [];
+            if (p.details.note) notes.push(p.details.note);
+            if (p.details.models_available)
+              notes.push(`${p.details.models_available} modelli`);
+            if (p.details.token_status)
+              notes.push(`Token: ${p.details.token_status}`);
+            if (p.details.total_runs != null)
+              notes.push(`AI Runs: ${p.details.total_runs}`);
+            if (notes.length)
+              content += `<div class="details">${notes.map(escapeHtml).join(" · ")}</div>`;
+          }
+
+          if (p.dashboard_url)
+            content += `<a class="dashboard-link" href="${escapeHtml(p.dashboard_url)}" target="_blank" rel="noopener">Dashboard ↗</a>`;
+
+          card.innerHTML = content;
+          grid.appendChild(card);
+        });
+      }
+
+      function buildCopilotHero(p) {
+        const badgeClass = p.status === "ok" ? "badge-ok" : "badge-error";
+        const badgeText = p.status === "ok" ? "Active" : "Error";
+
+        const MESI = [
+          "gennaio",
+          "febbraio",
+          "marzo",
+          "aprile",
+          "maggio",
+          "giugno",
+          "luglio",
+          "agosto",
+          "settembre",
+          "ottobre",
+          "novembre",
+          "dicembre",
+        ];
+        function fmtReset(raw) {
+          if (!raw) return null;
+          const d = new Date(raw);
+          if (isNaN(d)) return raw;
+          return `${d.getDate()} ${MESI[d.getMonth()]} ${d.getFullYear()}`;
+        }
+
+        const planHtml = p.details.plan
+          ? `<span style="font-weight:700;color:var(--purple);font-size:.9rem;text-transform:uppercase;letter-spacing:.05em">${escapeHtml(p.details.plan)}</span>`
+          : "";
+        const resetHtml = p.details.reset_date
+          ? `<span style="font-size:.7rem;color:var(--muted)">Reset: <strong>${escapeHtml(fmtReset(p.details.reset_date))}</strong></span>`
+          : "";
+        const overagesHtml =
+          p.details.overages !== undefined
+            ? `<span style="font-size:.7rem;color:${p.details.overages ? "var(--green)" : "var(--red)"}">Overages: <strong>${p.details.overages ? "sì ✓" : "no ✗"}</strong></span>`
+            : "";
+        const leftChips = [planHtml, overagesHtml]
+          .filter(Boolean)
+          .join('<span style="color:var(--border);margin:0 .4rem">|</span>');
+
+        // ── Token-based / AI credits mode ──────────────────────────────
+        if (p.details.token_based) {
+          const pctRem = p.details.premium_pct_remaining ?? 100;
+          const overpermitted = p.details.overage_permitted;
+          const barColor =
+            pctRem >= 50
+              ? "var(--green)"
+              : pctRem >= 20
+                ? "var(--yellow)"
+                : "var(--red)";
+
+          return `<div class="hero">
+            <div class="card-header">
+              <h2>
+                <svg class="copilot-icon" viewBox="0 0 16 16" fill="var(--purple)"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+                GitHub Copilot
+              </h2>
+              <span class="badge ${badgeClass}" style="display:flex;align-items:center;justify-content:center">${badgeText}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+              <div>
+                <div style="font-size:2rem;font-weight:700;letter-spacing:-1px;color:var(--green)">∞<span style="font-size:.75rem;font-weight:400;color:var(--muted);margin-left:.4rem">AI Credits · illimitato</span></div>
+                <div style="font-size:.75rem;color:var(--muted);margin-top:.15rem">Token-based billing attivo</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:1.5rem;font-weight:700;color:${barColor}">${pctRem.toFixed(1)}%</div>
+                <div style="font-size:.7rem;color:var(--muted)">quota rimanente</div>
+              </div>
+            </div>
+            <div class="usage-bar-container" style="height:8px;border-radius:6px;margin-bottom:.75rem">
+              <div class="usage-bar" style="width:${pctRem.toFixed(1)}%;background:${barColor};border-radius:6px"></div>
+            </div>
+            <div style="display:flex;gap:1rem;font-size:.75rem;color:var(--muted);margin-bottom:.75rem;flex-wrap:wrap">
+              <span style="color:var(--green)">✓ Quota illimitata</span>
+              <span style="color:${overpermitted ? "var(--green)" : "var(--muted)"}">
+                ${overpermitted ? "✓" : "–"} Overage ${overpermitted ? "consentito" : "non consentito"}
+              </span>
+            </div>
+            ${leftChips || resetHtml ? `<div style="margin-top:.4rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">${leftChips ? `<div style="display:flex;align-items:center;gap:.2rem">${leftChips}</div>` : ""}${resetHtml ? `<div style="font-size:.85rem">${resetHtml}</div>` : ""}</div>` : ""}
+            ${p.dashboard_url ? `<a class="dashboard-link" href="${escapeHtml(p.dashboard_url)}" target="_blank" rel="noopener" style="border-color:var(--purple);color:var(--purple)">Copilot Settings ↗</a>` : ""}
+          </div>`;
+        }
+
+        // ── Legacy request-based mode ───────────────────────────────────
+        const customPct = p.details.custom_pct || 0;
+        const absMax = p.details.absolute_max || 2301;
+        const maxPct = 767.2;
+        const halfPct = maxPct / 2; // 383.6%
+
+        // Three segments: base (0-100%), extra (100%-383.6%), danger (383.6%-767.2%)
+        const baseFill = Math.min(customPct, 100);
+        const extraFill = Math.max(0, Math.min(customPct, halfPct) - 100);
+        const dangerFill = Math.max(0, customPct - halfPct);
+
+        const basePctBar = (baseFill / maxPct) * 100;
+        const extraPctBar = (extraFill / maxPct) * 100;
+        const dangerPctBar = (dangerFill / maxPct) * 100;
+        const emptyBar = 100 - basePctBar - extraPctBar - dangerPctBar;
+
+        // Color for the percentage number
+        const numColor =
+          customPct <= 100
+            ? "var(--green)"
+            : customPct <= halfPct
+              ? "var(--yellow)"
+              : "var(--red)";
+
+        // Second percentage: usage over cap (0–100%)
+        const capPct =
+          absMax > 0 ? Math.min(((p.usage ?? 0) / absMax) * 100, 100) : 0;
+        const capPctStr = capPct.toFixed(1);
+        const capColor =
+          capPct <= 50
+            ? "var(--green)"
+            : capPct <= 75
+              ? "var(--yellow)"
+              : "var(--red)";
+
+        return `<div class="hero">
+          <div class="card-header">
+            <h2>
+              <svg class="copilot-icon" viewBox="0 0 16 16" fill="var(--purple)"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+              GitHub Copilot
+            </h2>
+            <span class="badge ${badgeClass}" style="display:flex;align-items:center;justify-content:center">${badgeText}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <div style="font-size:2.4rem;font-weight:700;letter-spacing:-1px;color:${numColor}">${customPct}%<span style="font-size:.75rem;font-weight:400;color:var(--muted);margin-left:.3rem">di ${maxPct}%</span></div>
+            <div style="font-size:1.1rem;font-weight:600;color:${capColor}">${capPctStr}%<span style="font-size:.75rem;font-weight:400;color:var(--muted);margin-left:.3rem">del cap</span></div>
+          </div>
+          <div class="copilot-bar">
+            ${basePctBar > 0 ? `<div class="seg seg-base" style="width:${basePctBar.toFixed(2)}%"></div>` : ""}
+            ${extraPctBar > 0 ? `<div class="seg seg-extra" style="width:${extraPctBar.toFixed(2)}%"></div>` : ""}
+            ${dangerPctBar > 0 ? `<div class="seg seg-danger" style="width:${dangerPctBar.toFixed(2)}%"></div>` : ""}
+            ${emptyBar > 0 ? `<div class="seg seg-empty" style="width:${emptyBar.toFixed(2)}%"></div>` : ""}
+          </div>
+          <div class="legend">
+            <span><span class="dot" style="background:var(--green)"></span> Base (0-100%)</span>
+            <span><span class="dot" style="background:var(--yellow)"></span> Extra (100-${halfPct.toFixed(1)}%)</span>
+            <span><span class="dot" style="background:var(--red)"></span> Critico (${halfPct.toFixed(1)}-${maxPct}%)</span>
+          </div>
+          <div class="stats" style="font-size:.85rem;align-items:center">
+            <span>Usate<span class="value">${p.usage ?? 0}</span></span>
+            <span style="align-items:center;text-align:center">Rimanenti<span class="value" style="font-size:1.6rem;color:${numColor};letter-spacing:-1px">${p.remaining !== null ? p.remaining : "—"}</span></span>
+            <span style="align-items:flex-end;text-align:right">Cap<span class="value">${absMax}</span></span>
+          </div>
+          ${leftChips || resetHtml ? `<div style="margin-top:.6rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">${leftChips ? `<div style="display:flex;align-items:center;gap:.2rem">${leftChips}</div>` : ""}${resetHtml ? `<div style="font-size:.85rem">${resetHtml}</div>` : ""}</div>` : ""}
+          ${p.dashboard_url ? `<a class="dashboard-link" href="${escapeHtml(p.dashboard_url)}" target="_blank" rel="noopener" style="border-color:var(--purple);color:var(--purple)">Copilot Settings ↗</a>` : ""}
+        </div>`;
+      }
+
+      function formatNum(n) {
+        if (n == null) return "—";
+        return typeof n === "number" && n % 1 !== 0
+          ? `$${n.toFixed(4)}`
+          : n.toLocaleString("it-IT");
+      }
+
+      function escapeHtml(s) {
+        const d = document.createElement("div");
+        d.textContent = s;
+        return d.innerHTML;
+      }
+    </script>
+  </body>
+</html>

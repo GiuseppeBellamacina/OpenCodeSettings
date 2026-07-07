@@ -1,0 +1,17 @@
+{
+  "github_copilot": {
+    "description": "GitHub Copilot entitlement - richiede cookie di sessione GitHub",
+    "url": "https://github.com/github-copilot/chat/entitlement",
+    "cookies": {
+      "user_session": "YOUR_SESSION_COOKIE",
+      "__Host-user_session_same_site": "YOUR_SESSION_COOKIE",
+      "logged_in": "yes",
+      "dotcom_user": "YOUR_GITHUB_USERNAME"
+    },
+    "headers": {
+      "github-verified-fetch": "true",
+      "x-requested-with": "XMLHttpRequest",
+      "accept": "application/json"
+    }
+  }
+}
